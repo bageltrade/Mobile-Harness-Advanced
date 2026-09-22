@@ -1,7 +1,7 @@
 {
-  "versionCode": 6,
-  "versionName": "1.1.0-advanced",
-  "notes": "Advanced resilience upgrade: DeepSeek Harness and Claude bridges now auto-retry on NVIDIA/provider HTTP 503, overload, gateway timeouts and rate-limits with exponential backoff (up to 5 attempts). Tasks no longer abort mid-flight on transient upstream failures. Improved error classification and live retry progress in chat + notifications.",
+  "versionCode": 7,
+  "versionName": "1.2.0-opencode",
+  "notes": "Adds OpenCode as a first-class coding agent (npm install of opencode-ai). Supports OpenCode Zen + BYOK providers (Anthropic, OpenRouter, DeepSeek, NVIDIA NIM, Kimi, Custom). Headless opencode run --format json --auto. Previous 503 retry resilience retained for DeepSeek Harness.",
   "apkUrl": "",
   "minSdk": 28
 }
