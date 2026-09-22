@@ -291,7 +291,77 @@ class OpencodeRuntimeBridge(
         }
     }
 
+    override suspend fun stopActiveSession() {
+        activeSessionId?.let { stopSession(it) }
+    }
+
     fun configureProjectRoot(projectId: String, rootPath: String) {
-        // OpenCode uses the guest workspace path from process spawn; nothing extra.
+        checkpoints.configureProjectRoot(projectId, rootPath)
+    }
+
+    override suspend fun undoLastChanges(projectId: String): Boolean = withContext(Dispatchers.IO) {
+        val checkpoint = checkpoints.checkpointDir(projectId)
+        val backup = File(checkpoint, "project")
+        if (!backup.isDirectory || !File(checkpoint, "changes.json").isFile) return@withContext false
+        val workspace = checkpoints.ensureWorkspace(projectId)
+        val paths = checkpoints.readChangedPaths(projectId).filterNot(checkpoints::isInternalRuntimePath)
+        if (paths.isEmpty()) return@withContext false
+        paths.forEach { path ->
+            val target = checkpoints.safeWorkspaceFile(workspace, path)
+            val original = checkpoints.safeWorkspaceFile(backup, path)
+            if (original.isFile) {
+                target.parentFile?.mkdirs()
+                original.copyTo(target, overwrite = true)
+            } else if (target.isFile) {
+                target.delete()
+            }
+        }
+        checkpoint.deleteRecursively()
+        true
+    }
+
+    override suspend fun acceptLastChanges(projectId: String) {
+        withContext(Dispatchers.IO) {
+            checkpoints.checkpointDir(projectId).deleteRecursively()
+        }
+    }
+
+    override suspend fun loadPendingChanges(projectId: String): List<com.jarves.mh.model.ChangeItem> =
+        withContext(Dispatchers.IO) {
+            val workspace = checkpoints.ensureWorkspace(projectId)
+            val paths = checkpoints.readChangedPaths(projectId).filterNot(checkpoints::isInternalRuntimePath)
+            if (paths.isEmpty()) emptyList() else checkpoints.buildChangeDetails(projectId, workspace, paths)
+        }
+
+    override suspend fun undoFileChange(projectId: String, path: String): Boolean = withContext(Dispatchers.IO) {
+        if (checkpoints.isInternalRuntimePath(path) || path !in checkpoints.readChangedPaths(projectId)) return@withContext false
+        val workspace = checkpoints.ensureWorkspace(projectId)
+        val backup = File(checkpoints.checkpointDir(projectId), "project")
+        val target = checkpoints.safeWorkspaceFile(workspace, path)
+        val original = checkpoints.safeWorkspaceFile(backup, path)
+        if (original.isFile) {
+            target.parentFile?.mkdirs()
+            original.copyTo(target, overwrite = true)
+        } else if (target.isFile) {
+            target.delete()
+        }
+        checkpoints.removeChangedPath(projectId, path)
+        true
+    }
+
+    override suspend fun acceptFileChange(projectId: String, path: String): Boolean = withContext(Dispatchers.IO) {
+        if (checkpoints.isInternalRuntimePath(path) || path !in checkpoints.readChangedPaths(projectId)) return@withContext false
+        val workspace = checkpoints.ensureWorkspace(projectId)
+        val backup = File(checkpoints.checkpointDir(projectId), "project")
+        val current = checkpoints.safeWorkspaceFile(workspace, path)
+        val baseline = checkpoints.safeWorkspaceFile(backup, path)
+        if (current.isFile) {
+            baseline.parentFile?.mkdirs()
+            current.copyTo(baseline, overwrite = true)
+        } else if (baseline.isFile) {
+            baseline.delete()
+        }
+        checkpoints.removeChangedPath(projectId, path)
+        true
     }
 }
