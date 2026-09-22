@@ -1,7 +1,7 @@
 {
-  "versionCode": 8,
-  "versionName": "1.2.1-resilient",
-  "notes": "DeepSeek Harness: clears stale session logs before each retry to prevent id-collision after 503; treats session collision as transient; up to 8 retries with longer backoff (3s→45s). OpenCode agent retained.",
+  "versionCode": 9,
+  "versionName": "1.2.2-retries15",
+  "notes": "Removed OpenCode agent. DeepSeek Harness transient retries increased to 15 (3s→45s). Session collision cleanup retained.",
   "apkUrl": "",
   "minSdk": 28
 }

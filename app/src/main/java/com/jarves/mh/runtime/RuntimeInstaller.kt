@@ -67,7 +67,6 @@ class RuntimeInstaller(private val context: Context) {
     private val devStacksFile = File(rootfs, ".pocket-dev-stacks.json")
     private val dshMarker = File(rootfs, ".pocket-dsh-version")
     private val agyMarker = File(rootfs, ".pocket-agy-version")
-    private val opencodeMarker = File(rootfs, ".pocket-opencode-version")
     private val githubCliMarker = File(rootfs, ".pocket-github-cli-version")
     private val dshAndroidCompatibilityMarker = File(rootfs, ".pocket-dsh-android-compat-version")
     private val macosMetadataRepairMarker = File(rootfs, ".pocket-macos-metadata-repair")
@@ -213,7 +212,6 @@ class RuntimeInstaller(private val context: Context) {
             com.jarves.mh.model.AgentKind.CLAUDE_CODE -> ensureClaudeInstalled(proot, 0.985f, onProgress)
             com.jarves.mh.model.AgentKind.DEEPSEEK_HARNESS -> ensureDshInstalled(proot, 0.985f, onProgress)
             com.jarves.mh.model.AgentKind.ANTIGRAVITY -> ensureAgyInstalled(proot, 0.985f, onProgress)
-            com.jarves.mh.model.AgentKind.OPENCODE -> ensureOpencodeInstalled(proot, 0.985f, onProgress)
         }
         onProgress(RuntimeInstallProgress("Setup complete", 1f))
         return InstalledRuntime(proot, rootfs)
@@ -233,7 +231,6 @@ class RuntimeInstaller(private val context: Context) {
             com.jarves.mh.model.AgentKind.CLAUDE_CODE -> ensureClaudeInstalled(runtime.proot, 0.05f, onProgress)
             com.jarves.mh.model.AgentKind.DEEPSEEK_HARNESS -> ensureDshInstalled(runtime.proot, 0.05f, onProgress)
             com.jarves.mh.model.AgentKind.ANTIGRAVITY -> ensureAgyInstalled(runtime.proot, 0.05f, onProgress)
-            com.jarves.mh.model.AgentKind.OPENCODE -> ensureOpencodeInstalled(runtime.proot, 0.05f, onProgress)
         }
         onProgress(RuntimeInstallProgress("${agent.title} is ready", 1f))
     }
@@ -250,9 +247,6 @@ class RuntimeInstaller(private val context: Context) {
                 // against Android's host root and therefore reports false outside PRoot.
                 File(rootfs, "usr/local/lib/dsh/node_modules/.bin/dsh").isFile &&
                 !dshMarker.readTextOrNull().isNullOrBlank()
-            com.jarves.mh.model.AgentKind.OPENCODE -> isInstalled() &&
-                File(rootfs, "usr/local/bin/opencode").canExecute() &&
-                !opencodeMarker.readTextOrNull().isNullOrBlank()
             com.jarves.mh.model.AgentKind.ANTIGRAVITY -> isInstalled() &&
                 File(rootfs, AGY_GUEST_PATH.removePrefix("/")).canExecute() &&
                 !agyMarker.readTextOrNull().isNullOrBlank()
@@ -382,10 +376,6 @@ class RuntimeInstaller(private val context: Context) {
             com.jarves.mh.model.AgentKind.CLAUDE_CODE -> updateClaude(runtime, expectedVersion, onProgress)
             com.jarves.mh.model.AgentKind.DEEPSEEK_HARNESS -> updateDsh(runtime, expectedVersion, onProgress)
             com.jarves.mh.model.AgentKind.ANTIGRAVITY -> updateAgy(runtime, expectedVersion, onProgress)
-            com.jarves.mh.model.AgentKind.OPENCODE -> {
-                // Re-run npm global install to refresh opencode-ai
-                ensureOpencodeInstalled(runtime.proot, 0.1f, onProgress)
-            }
         }
         onProgress(RuntimeInstallProgress("${agent.title} $expectedVersion is ready", 1f, event = RuntimeInstallEvent.COMPLETED))
     }
@@ -590,31 +580,6 @@ class RuntimeInstaller(private val context: Context) {
      * The bundled, pinned DSH build can use COPYFILE_EXCL for the same
      * no-clobber guarantee. Existing-file edits continue to use atomic rename.
      */
-    private suspend fun ensureOpencodeInstalled(
-        proot: File,
-        fraction: Float,
-        onProgress: suspend (RuntimeInstallProgress) -> Unit,
-    ) {
-        if (isAgentInstalled(com.jarves.mh.model.AgentKind.OPENCODE)) return
-        installNodeIfNeeded(proot, fraction, (fraction + 0.35f).coerceAtMost(0.85f), onProgress)
-        runGuestCommand(
-            proot = proot,
-            command = "npm install -g --omit=dev --no-audit --no-fund opencode-ai@latest && " +
-                "bin=\${'$'}(npm root -g)/../bin/opencode; " +
-                "if [ -x \"\${'$'}bin\" ]; then ln -sf \"\${'$'}bin\" /usr/local/bin/opencode; fi; " +
-                "command -v opencode",
-            displayCommand = "npm install -g opencode-ai@latest",
-            fraction = (fraction + 0.55f).coerceAtMost(0.95f),
-            timeoutMs = 20 * 60 * 1_000L,
-            onProgress = onProgress,
-            failureMessage = "OpenCode npm install failed",
-        )
-        verifyGuest(proot, "opencode --version", "OpenCode verification failed")
-        opencodeMarker.writeText("npm-latest")
-        require(isAgentInstalled(com.jarves.mh.model.AgentKind.OPENCODE)) {
-            "OpenCode installation is incomplete — opencode binary not found"
-        }
-    }
 
     fun ensureDshAndroidCompatibility() {
         if (!isAgentInstalled(com.jarves.mh.model.AgentKind.DEEPSEEK_HARNESS)) return

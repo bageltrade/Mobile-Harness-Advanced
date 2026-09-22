@@ -792,7 +792,7 @@ class DshRuntimeBridge(
         private const val SDK_SHUTDOWN_ID = 3
         private const val SDK_SHUTDOWN_TIMEOUT_MS = 3_000L
         /** Max automatic retries when NVIDIA NIM / provider returns 503 / overload. */
-        private const val TRANSIENT_MAX_RETRIES = 8
+        private const val TRANSIENT_MAX_RETRIES = 15
         /** Base backoff in ms; doubles each attempt (capped). */
         private const val TRANSIENT_BACKOFF_BASE_MS = 3_000L
         private const val TRANSIENT_BACKOFF_MAX_MS = 45_000L

@@ -810,7 +810,6 @@ fun AgentScreen(
                                 val updateAvailable = state.agentUpdates.containsKey(agent)
                                 val shortTitle = when (agent) {
                                     AgentKind.ANTIGRAVITY -> "Antigravity"
-                                    AgentKind.OPENCODE -> "OpenCode"
                                     AgentKind.DEEPSEEK_HARNESS -> "DeepSeek"
                                     AgentKind.CLAUDE_CODE -> "Claude Code"
                                 }
