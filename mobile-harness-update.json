@@ -1,0 +1,7 @@
+{
+  "versionCode": 6,
+  "versionName": "1.1.0-advanced",
+  "notes": "Advanced resilience upgrade: DeepSeek Harness and Claude bridges now auto-retry on NVIDIA/provider HTTP 503, overload, gateway timeouts and rate-limits with exponential backoff (up to 5 attempts). Tasks no longer abort mid-flight on transient upstream failures. Improved error classification and live retry progress in chat + notifications.",
+  "apkUrl": "",
+  "minSdk": 28
+}
