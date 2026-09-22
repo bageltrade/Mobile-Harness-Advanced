@@ -1,7 +1,7 @@
 {
-  "versionCode": 7,
-  "versionName": "1.2.0-opencode",
-  "notes": "Adds OpenCode as a first-class coding agent (npm install of opencode-ai). Supports OpenCode Zen + BYOK providers (Anthropic, OpenRouter, DeepSeek, NVIDIA NIM, Kimi, Custom). Headless opencode run --format json --auto. Previous 503 retry resilience retained for DeepSeek Harness.",
+  "versionCode": 8,
+  "versionName": "1.2.1-resilient",
+  "notes": "DeepSeek Harness: clears stale session logs before each retry to prevent id-collision after 503; treats session collision as transient; up to 8 retries with longer backoff (3s→45s). OpenCode agent retained.",
   "apkUrl": "",
   "minSdk": 28
 }

@@ -13,6 +13,7 @@ import com.jarves.mh.model.RuntimeEvent
 import com.jarves.mh.model.ToolRequest
 import java.io.File
 import java.io.RandomAccessFile
+import java.util.LinkedHashMap
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
@@ -124,11 +125,19 @@ class DshRuntimeBridge(
             // (HTTP 503, overload, gateway timeouts). Each attempt gets a fresh process.
             val sdkResult = runWithTransientRetry(sessionId, projectSlug) { attempt ->
                 Log.d("DshBridge", "Launching dsh (attempt $attempt) route=${route.name} model=${provider.model}")
+                // Clear stale DSH session logs so a retried process never hits
+                // "already has a persisted log ... (id collision)".
+                clearStaleDshSessions(installed.rootfs)
+                val attemptEnv = LinkedHashMap(environment).apply {
+                    // Isolate each attempt's session namespace inside DSH_HOME.
+                    put("DSH_SESSION_SUFFIX", "${sessionId.take(8)}-a$attempt")
+                    put("DSH_RUN_ID", "${sessionId}-a$attempt")
+                }
                 val process = installer.process(
                     installed.proot,
                     installed.rootfs,
                     workspace,
-                    environment,
+                    attemptEnv,
                     command,
                     guestWorkspacePath = guestWorkspacePath,
                     // dsh's editor saves through an atomic temp-file rename. PRoot's
@@ -620,6 +629,11 @@ class DshRuntimeBridge(
             "try again",
             "retry later",
             "server error",
+            // DSH session log collisions after a killed/retried process
+            "id collision",
+            "persisted log",
+            "already has a persisted",
+            "session collision",
         ).any { it in m }
     }
 
@@ -759,10 +773,10 @@ class DshRuntimeBridge(
         private const val SDK_SHUTDOWN_ID = 3
         private const val SDK_SHUTDOWN_TIMEOUT_MS = 3_000L
         /** Max automatic retries when NVIDIA NIM / provider returns 503 / overload. */
-        private const val TRANSIENT_MAX_RETRIES = 5
+        private const val TRANSIENT_MAX_RETRIES = 8
         /** Base backoff in ms; doubles each attempt (capped). */
-        private const val TRANSIENT_BACKOFF_BASE_MS = 2_000L
-        private const val TRANSIENT_BACKOFF_MAX_MS = 30_000L
+        private const val TRANSIENT_BACKOFF_BASE_MS = 3_000L
+        private const val TRANSIENT_BACKOFF_MAX_MS = 45_000L
     }
 }
 
