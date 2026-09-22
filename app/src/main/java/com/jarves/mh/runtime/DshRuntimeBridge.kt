@@ -447,6 +447,25 @@ class DshRuntimeBridge(
         true
     }
 
+
+    /** Wipe leftover DSH session/jsonl logs that cause id-collision on retry. */
+    private fun clearStaleDshSessions(rootfs: File) {
+        val home = File(rootfs, DSH_HOME_GUEST_PATH.removePrefix("/"))
+        if (!home.isDirectory) return
+        listOf("sessions", "session", "logs", "runs", "tmp").forEach { name ->
+            val dir = File(home, name)
+            if (dir.isDirectory) {
+                runCatching { dir.deleteRecursively() }
+                dir.mkdirs()
+            }
+        }
+        home.listFiles()?.forEach { f ->
+            if (f.isFile && (f.name.endsWith(".jsonl") || f.name.endsWith(".lock") || f.name.startsWith("session"))) {
+                runCatching { f.delete() }
+            }
+        }
+    }
+
     private fun writeDshSettings(rootfs: File, route: DshRoute, provider: ProviderProfile) {
         val home = File(rootfs, DSH_HOME_GUEST_PATH.removePrefix("/")).apply { mkdirs() }
         val body = buildString {
