@@ -153,9 +153,6 @@ fun providersForAgent(agent: AgentKind): List<ProviderKind> = when (agent) {
         ProviderKind.KIMI,
     )
 }
-    AgentKind.CLAUDE_CODE -> ProviderKind.entries.filterNot { it == ProviderKind.OPENCODE_ZEN }
-    AgentKind.ANTIGRAVITY -> emptyList()
-}
 
 data class ProviderProfile(
     val kind: ProviderKind,

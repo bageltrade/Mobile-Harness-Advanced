@@ -67,6 +67,7 @@ class RuntimeInstaller(private val context: Context) {
     private val devStacksFile = File(rootfs, ".pocket-dev-stacks.json")
     private val dshMarker = File(rootfs, ".pocket-dsh-version")
     private val agyMarker = File(rootfs, ".pocket-agy-version")
+    private val opencodeMarker = File(rootfs, ".pocket-opencode-version")
     private val githubCliMarker = File(rootfs, ".pocket-github-cli-version")
     private val dshAndroidCompatibilityMarker = File(rootfs, ".pocket-dsh-android-compat-version")
     private val macosMetadataRepairMarker = File(rootfs, ".pocket-macos-metadata-repair")
@@ -595,8 +596,8 @@ class RuntimeInstaller(private val context: Context) {
         runGuestCommand(
             proot = proot,
             command = "npm install -g --omit=dev --no-audit --no-fund opencode-ai@latest && " +
-                "bin=$(npm root -g)/../bin/opencode; " +
-                "if [ -x "$bin" ]; then ln -sf "$bin" /usr/local/bin/opencode; fi; " +
+                "bin=\${'$'}(npm root -g)/../bin/opencode; " +
+                "if [ -x \"\${'$'}bin\" ]; then ln -sf \"\${'$'}bin\" /usr/local/bin/opencode; fi; " +
                 "command -v opencode",
             displayCommand = "npm install -g opencode-ai@latest",
             fraction = (fraction + 0.55f).coerceAtMost(0.95f),
